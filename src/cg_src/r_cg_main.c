@@ -78,6 +78,7 @@ void R_MAIN_UserInit(void)
 {
     /* Start user code. Do not edit comment generated here */
 	//开启串口1
+	//哈哈哈哈
 	R_SCI1_Create();
 	R_SCI1_Start();
     /* End user code. Do not edit comment generated here */
