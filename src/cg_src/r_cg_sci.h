@@ -304,7 +304,9 @@ Global functions
 void R_SCI1_Create(void);
 void R_SCI1_Start(void);
 void R_SCI1_Stop(void);
+MD_STATUS R_SCI1_Serial_Send(uint8_t * const tx_buf, uint16_t tx_num);
 MD_STATUS R_SCI1_Serial_Receive(uint8_t * const rx_buf, uint16_t rx_num);
+static void r_sci1_callback_transmitend(void);
 static void r_sci1_callback_receiveend(void);
 static void r_sci1_callback_receiveerror(void);
 void R_SCI5_Create(void);

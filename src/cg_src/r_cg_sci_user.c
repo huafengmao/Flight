@@ -44,6 +44,8 @@ Includes
 /***********************************************************************************************************************
 Global variables and functions
 ***********************************************************************************************************************/
+extern uint8_t * gp_sci1_tx_address;                /* SCI1 send buffer address */
+extern uint16_t  g_sci1_tx_count;                   /* SCI1 send data number */
 extern uint8_t * gp_sci1_rx_address;                /* SCI1 receive buffer address */
 extern uint16_t  g_sci1_rx_count;                   /* SCI1 receive data number */
 extern uint16_t  g_sci1_rx_length;                  /* SCI1 receive data length */
@@ -53,7 +55,53 @@ extern uint16_t  g_sci5_rx_length;                  /* SCI5 receive data length 
 /* Start user code for global. Do not edit comment generated here */
 /* End user code. Do not edit comment generated here */
 
+/***********************************************************************************************************************
+* Function Name: r_sci1_transmit_interrupt
+* Description  : None
+* Arguments    : None
+* Return Value : None
+***********************************************************************************************************************/
+#if FAST_INTERRUPT_VECTOR == VECT_SCI1_TXI1
+#pragma interrupt r_sci1_transmit_interrupt(vect=VECT(SCI1,TXI1),fint)
+#else
+#pragma interrupt r_sci1_transmit_interrupt(vect=VECT(SCI1,TXI1))
+#endif
+static void r_sci1_transmit_interrupt(void)
+{
+    if (0U < g_sci1_tx_count)
+    {
+        SCI1.TDR = *gp_sci1_tx_address;
+        gp_sci1_tx_address++;
+        g_sci1_tx_count--;
+    }
+    else
+    {
+        SCI1.SCR.BIT.TIE = 0U;
+        SCI1.SCR.BIT.TEIE = 1U;
+    }
+}
 
+/***********************************************************************************************************************
+* Function Name: r_sci1_transmitend_interrupt
+* Description  : None
+* Arguments    : None
+* Return Value : None
+***********************************************************************************************************************/
+#if FAST_INTERRUPT_VECTOR == VECT_SCI1_TEI1
+#pragma interrupt r_sci1_transmitend_interrupt(vect=VECT(SCI1,TEI1),fint)
+#else
+#pragma interrupt r_sci1_transmitend_interrupt(vect=VECT(SCI1,TEI1))
+#endif
+static void r_sci1_transmitend_interrupt(void)
+{
+    /* Set TXD1 pin */
+    PORTD.PMR.BYTE &= 0xF7U;
+    SCI1.SCR.BIT.TIE = 0U;
+    SCI1.SCR.BIT.TE = 0U;
+    SCI1.SCR.BIT.TEIE = 0U;
+
+    r_sci1_callback_transmitend();
+}
 /***********************************************************************************************************************
 * Function Name: r_sci1_receive_interrupt
 * Description  : None
@@ -103,6 +151,18 @@ static void r_sci1_receiveerror_interrupt(void)
     SCI1.SSR.BYTE = err_type;
 }
 /***********************************************************************************************************************
+* Function Name: r_sci1_callback_transmitend
+* Description  : This function is a callback function when SCI1 finishes transmission.
+* Arguments    : None
+* Return Value : None
+***********************************************************************************************************************/
+static void r_sci1_callback_transmitend(void)
+{
+    /* Start user code. Do not edit comment generated here */
+	U1_Tx_End = Yes;
+    /* End user code. Do not edit comment generated here */
+}
+/***********************************************************************************************************************
 * Function Name: r_sci1_callback_receiveend
 * Description  : This function is a callback function when SCI1 finishes reception.
 * Arguments    : None
@@ -111,7 +171,7 @@ static void r_sci1_receiveerror_interrupt(void)
 static void r_sci1_callback_receiveend(void)
 {
     /* Start user code. Do not edit comment generated here */
-	U1_Tx_End = Yes;
+	U1_Rx_End = Yes;
     /* End user code. Do not edit comment generated here */
 }
 /***********************************************************************************************************************
@@ -184,7 +244,7 @@ static void r_sci5_receiveerror_interrupt(void)
 static void r_sci5_callback_receiveend(void)
 {
     /* Start user code. Do not edit comment generated here */
-	U2_Tx_End = Yes;
+	U2_Rx_End = Yes;
     /* End user code. Do not edit comment generated here */
 }
 /***********************************************************************************************************************

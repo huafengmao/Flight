@@ -1165,7 +1165,8 @@ extern void SysCtrl_Update_Msg_Ctrl_To_FMU(void)
             }
         }
         
-        Usart_Send_Data(&huart1, Msg_CtrlToFMU.Buf, sizeof(Msg_CtrlToFMU_t));
+        R_SCI1_Serial_Send(Msg_CtrlToFMU.Buf,sizeof(Msg_CtrlToFMU_t));
+//        Usart_Send_Data(&huart1, Msg_CtrlToFMU.Buf, sizeof(Msg_CtrlToFMU_t));
     }
 }
 
