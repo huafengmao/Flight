@@ -113,9 +113,9 @@ void R_MAIN_UserInit(void)
 
 
 	//三个串口各自接收一次初始化的数据，需要关调用一次接收数据的函数R_SCI1_Serial_Receive(uint8_t * const rx_buf, uint16_t rx_num);，三个串口名暂未定义
-	Usart_Receive_IT(&huart1, U1RxBuf, sizeof(Msg_FMUToCtrl_t));    // 串口1接收一次飞控发送的数据包
-	Usart_Receive_IT(&huart2, U2RxBuf, sizeof(Msg_SmpToCtrl_t));    // ´®¿Ú2×¼±¸½ÓÊÕ²É¼¯°å·¢ËÍµÄÊý¾Ý°ü
-	//Usart_Receive_IT(&huart3, U3RxBuf, 1);                          // ´®¿Ú3×¼±¸½ÓÊÕ1¸ö×Ö½ÚµÄµ÷ÊÔÃüÁî
+	R_SCI1_Serial_Receive(U1RxBuf,sizeof(Msg_FMUToCtrl_t));          // 串口1接收一次飞控发送的数据包
+	R_SCI5_Serial_Receive(U2RxBuf, sizeof(Msg_SmpToCtrl_t));         // 串口2准备接收采集板发送的数据包
+	//Usart_Receive_IT(&huart3, U3RxBuf, 1);                          // 串口3准备接收1个字节的调试命令
 
 	//开启串口
 	R_SCI1_Start();
