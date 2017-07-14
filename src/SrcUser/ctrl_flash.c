@@ -10,10 +10,15 @@
 #include "ctrl_key.h"
 #include "ctrl_led.h"
 #include "ctrl_fmu.h"
-#include "usart.h"
-//test
+//#include "usart.h"
+
+#include "platform.h"
+#include "r_flash_rx_if.h"
+#include "r_flash_rx_config.h"
+#include "r_flash_rx23t.h"
+
 // 1024 Byte for User, at the last page(1kB(1024 Byte) per page).
-#define USER_FLASH_ADDR     (FLASH_BASE + ((128 - 1) * 1024))       // 用户 Flash 数据 起始地址
+#define USER_FLASH_ADDR     (FLASH_CF_BLOCK_0)       // 用户 Flash 数据 起始地址
 #define USER_FLASH_SAVE_MAX (1024 - 4)                              // 用户 Flash 数据 最大长度
 
 extern YesNo_t En_RC_Offset_Update = No;        // 是否可以更新遥控器微调值
@@ -24,7 +29,18 @@ static YesNo_t Flash_Erase_User_Zone(void);     // 擦除用户 Flash 区内容
 // 擦除用户 Flash 区内容
 static YesNo_t Flash_Erase_User_Zone(void)
 {
-    FLASH_EraseInitTypeDef FLASH_Erase_UserZone;
+	flash_err_t err;
+	flash_res_t result;
+	err = R_FLASH_Erase((flash_block_address_t)USER_FLASH_ADDR, 1);
+	if (FLASH_SUCCESS != err)
+		return No;
+	err = R_FLASH_BlankCheck((uint32_t)USER_FLASH_ADDR, FLASH_CF_BLOCK_SIZE, &result);
+	if ((err != FLASH_SUCCESS) || (result != FLASH_RES_BLANK))
+		return No;
+	return Yes;
+
+	//----------------Original Code----------------/
+    /*FLASH_EraseInitTypeDef FLASH_Erase_UserZone;
     uint32 PageError;
     YesNo_t OptResult;
     
@@ -36,7 +52,7 @@ static YesNo_t Flash_Erase_User_Zone(void)
     
     if(HAL_OK == HAL_FLASHEx_Erase(&FLASH_Erase_UserZone, &PageError))
         OptResult = Yes;
-    return OptResult;
+    return OptResult;*/
 }
 
 // 保存遥控器的微调参数到 Flash ，以便执行全程控任务时，加以利用，提高稳定性
@@ -115,14 +131,31 @@ extern YesNo_t Save_RC_Offset_To_Flash(int16 OF_Rol, int16 OF_Pit)
 {
     static RC_Offset_t RC_Offset_Cache;
     uint16 NeedWordNum = 0;
-    uint32* pWord = 0;
+    uint32_t* pRC_Offset = 0;
     uint16 i;
+    flash_err_t err;
     
     RC_Offset_Cache.IsSaved = RC_OF_SAVED;
     RC_Offset_Cache.RC_Rol_Offset = OF_Rol;
     RC_Offset_Cache.RC_Pit_Offset = OF_Pit;
     RC_Offset_Cache.CRCVal = OF_Rol ^ OF_Pit;
-        
+
+    // 1 Open Code Flash  打开代码Flash
+    err = R_FLASH_Open();
+    if (FLASH_SUCCESS != err)
+    	return No;
+
+    // 2 Erase Code Flash  擦除用户区(擦除时总是按块 整块擦除)
+    if (No == Flash_Erase_User_Zone())
+    	return No;
+
+    // 3 Write to Flash 写数据到 Flash 中
+    pRC_Offset = (uint32_t*)&RC_Offset_Cache;
+    err = R_FLASH_Write(pRC_Offset, (uint32_t)USER_FLASH_ADDR, sizeof(RC_Offset_t));
+    if(FLASH_SUCCESS != err)
+    	return No;
+    return Yes;
+    /*******************Original Code*******************
     // 1 Unlock Flash   解锁飞控
     if(HAL_OK != HAL_FLASH_Unlock())
         return No;
@@ -150,6 +183,7 @@ extern YesNo_t Save_RC_Offset_To_Flash(int16 OF_Rol, int16 OF_Pit)
         return No;
     
     return Yes;
+     *******************Original Code*******************/
 }
 
 // 从 Flash 中读取遥控器微调值
